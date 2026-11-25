@@ -1,9 +1,9 @@
-# Arc Files (`v0.4.1-beta`)
+# Arc Files (`v0.4.2-beta`)
 
-A fast, lightweight Android file explorer built with **Kotlin** and **Jetpack Compose (Material 3)** following an **iOS Files / macOS Finder System Blue (`#007AFF`)** design, featuring a translucent **Top Tab Island**, **View Options & Tab Manager**, flat borderless **Breadcrumbs**, explicit **Sort Order** (`Asc` / `Desc`), **Group By** (`None` / `Type` / `Date`), **real-time Room per-folder layout persistence** (with automatic cleanup on folder rename/delete), **adaptive multi-DPI scaling** (`ldpi`–`xxxhdpi` & tablets), uniform **Square 2–5 column Grid**, **Original Ratio Image & Video Viewer**, **built-in APK Package Installer**, **Space Analyzer**, **Recycle Bin**, **Bookmarks**, **File Tags**, and a dedicated **Settings** page.
+A fast, lightweight Android file explorer built with **Kotlin** and **Jetpack Compose (Material 3)** following an **iOS Files / macOS Finder System Blue (`#007AFF`)** design, featuring a translucent **Top Tab Island**, **View Options & Tab Manager**, flat borderless **Breadcrumbs**, explicit **Sort Order** (`Asc` / `Desc`), **Group By** (`None` / `Type` / `Date`), **real-time Room per-folder layout persistence** (with automatic cleanup on folder rename/delete), **adaptive multi-DPI scaling** (`ldpi`–`xxxhdpi` & tablets), uniform **Square 2–5 column Grid**, **Original Ratio Image & Video Viewer**, **built-in APK Package Installer**, **Space Analyzer**, **Active Recycle Bin**, **Bookmarks**, **File Tags**, and a dedicated **Settings** page.
 
 ## Current Release Status
-- **Stage:** Beta (`0.4.1-beta`, `versionCode = 14`)
+- **Stage:** Beta (`0.4.2-beta`, `versionCode = 15`)
 - **Application ID:** `com.aistudio.applet.opqlxp`
 - **Min SDK:** 24 · **Target/Compile SDK:** 36
 
@@ -39,7 +39,7 @@ gradle :app:testDebugUnitTest
 ```
 
 ## CI/CD & GitHub Releases
-The workflow at `.github/workflows/android-release.yml` automatically runs tests, builds the **Publish APK** (`assembleRelease`), **Play Store AAB** (`bundleRelease`), and **Universal APK** (`bundletool`), verifies signatures with `apksigner`, and publishes them to **GitHub Releases** on pushes to `main`, `v*` tags, or manual `workflow_dispatch`.
+The workflow at `.github/workflows/android-release.yml` uses **GitHub Actions Build Cache** (`setup-gradle@v4` with `--build-cache` + Android build cache + `bundletool` cache), runs unit & Robolectric tests, builds the **Publish APK** (`assembleRelease`), **Play Store AAB** (`bundleRelease`), and **Universal APK** (`bundletool`), verifies signatures with `apksigner`, and automatically publishes to **GitHub Releases** on pushes to `main`/`master`, `v*` tags, or manual `workflow_dispatch` (with a debug APK pre-release fallback when signing secrets aren't configured yet).
 
 Configure these **Repository Secrets** (`Settings → Secrets and variables → Actions`) using a keystore whose key alias is `upload`:
 - `KEYSTORE_BASE64`: Base64-encoded `.jks` upload keystore (`base64 -w 0 my-upload-key.jks`)

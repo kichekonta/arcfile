@@ -24,4 +24,10 @@ dependencyResolutionManagement {
 
 rootProject.name = "Arc Files"
 
+buildCache {
+  local {
+    isEnabled = true
+  }
+}
+
 include(":app")
