@@ -1,0 +1,326 @@
+name: Android Release & Play Store Build
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag override (defaults to v<versionName>)"
+        required: false
+        type: string
+      publish_release:
+        description: "Publish APK & Play Store AAB to GitHub Release"
+        required: false
+        default: true
+        type: boolean
+      prerelease:
+        description: "Mark GitHub Release as pre-release"
+        required: false
+        default: "auto"
+        type: choice
+        options:
+          - "auto"
+          - "true"
+          - "false"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  BUNDLETOOL_VERSION: "1.18.3"
+  KEY_ALIAS: "upload"
+  JAVA_TOOL_OPTIONS: "-Djava.awt.headless=true"
+  GRADLE_CI_FLAGS: "-Djava.awt.headless=true -Dkotlin.compiler.execution.strategy=daemon -Pkotlin.compiler.execution.strategy=daemon -Dorg.gradle.parallel=false --no-configuration-cache --max-workers=2"
+
+jobs:
+  build:
+    name: Build, Verify & Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Extract Gradle & app version metadata
+        id: meta
+        shell: bash
+        run: |
+          GRADLE_VERSION=$(grep -E '^distributionUrl=' gradle/wrapper/gradle-wrapper.properties | sed -E 's/.*gradle-([0-9]+\.[0-9]+(\.[0-9]+)?).*/\1/')
+          if [ -z "$GRADLE_VERSION" ]; then
+            GRADLE_VERSION="9.3.1"
+          fi
+
+          VERSION_NAME=$(grep -E '^\s*versionName\s*=' app/build.gradle.kts | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/')
+          VERSION_CODE=$(grep -E '^\s*versionCode\s*=' app/build.gradle.kts | head -n 1 | sed -E 's/[^0-9]//g')
+          if [ -z "$VERSION_NAME" ]; then
+            VERSION_NAME="0.0.0"
+          fi
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.release_tag }}" ]; then
+            RELEASE_TAG="${{ inputs.release_tag }}"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            RELEASE_TAG="${{ github.ref_name }}"
+          else
+            RELEASE_TAG="v${VERSION_NAME}"
+          fi
+
+          PRERELEASE_INPUT="${{ inputs.prerelease }}"
+          if [ "$PRERELEASE_INPUT" = "true" ]; then
+            IS_PRERELEASE="true"
+          elif [ "$PRERELEASE_INPUT" = "false" ]; then
+            IS_PRERELEASE="false"
+          elif [[ "$RELEASE_TAG" =~ -(alpha|beta|rc|dev) ]]; then
+            IS_PRERELEASE="true"
+          else
+            IS_PRERELEASE="false"
+          fi
+
+          if [ -f "./gradlew" ]; then
+            chmod +x ./gradlew
+            echo "GRADLE_CMD=./gradlew" >> "$GITHUB_ENV"
+          else
+            echo "GRADLE_CMD=gradle" >> "$GITHUB_ENV"
+          fi
+
+          echo "gradle_version=${GRADLE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
+          echo "version_code=${VERSION_CODE}" >> "$GITHUB_OUTPUT"
+          echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "is_prerelease=${IS_PRERELEASE}" >> "$GITHUB_OUTPUT"
+
+          echo "Gradle: ${GRADLE_VERSION} | Version: ${VERSION_NAME} (${VERSION_CODE}) | Tag: ${RELEASE_TAG} | Pre-release: ${IS_PRERELEASE}"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: ${{ steps.meta.outputs.gradle_version }}
+
+      - name: Pre-flight signing validation
+        id: signing
+        shell: bash
+        env:
+          RAW_KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          RAW_STORE_PASSWORD: ${{ secrets.STORE_PASSWORD || secrets.KEYSTORE_PASSWORD }}
+          RAW_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "has_signing=false" >> "$GITHUB_OUTPUT"
+            echo "Pull request build: skipping release signing."
+            exit 0
+          fi
+
+          if [ -z "$RAW_KEYSTORE_BASE64" ] || [ -z "$RAW_STORE_PASSWORD" ]; then
+            if [[ "${{ github.ref }}" == refs/tags/* ]] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "::error::Missing required signing secrets. Configure KEYSTORE_BASE64, STORE_PASSWORD, and KEY_PASSWORD in GitHub repository secrets (key alias must be '${KEY_ALIAS}')."
+              exit 1
+            fi
+            echo "::warning::Signing secrets not configured; running debug build & unit tests only. Add KEYSTORE_BASE64, STORE_PASSWORD, and KEY_PASSWORD to enable auto-publishing."
+            echo "has_signing=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          EFFECTIVE_KEY_PASSWORD="${RAW_KEY_PASSWORD:-$RAW_STORE_PASSWORD}"
+          echo "::add-mask::${RAW_STORE_PASSWORD}"
+          echo "::add-mask::${EFFECTIVE_KEY_PASSWORD}"
+
+          KEYSTORE_FILE="${RUNNER_TEMP}/release-upload.jks"
+          KS_PASS_FILE="${RUNNER_TEMP}/ks.pass"
+          KEY_PASS_FILE="${RUNNER_TEMP}/key.pass"
+
+          # Strip whitespace/newlines in case base64 secret was wrapped
+          printf '%s' "$RAW_KEYSTORE_BASE64" | tr -d '\r\n ' | base64 --decode > "$KEYSTORE_FILE"
+          chmod 600 "$KEYSTORE_FILE"
+
+          printf '%s' "$RAW_STORE_PASSWORD" > "$KS_PASS_FILE"
+          printf '%s' "$EFFECTIVE_KEY_PASSWORD" > "$KEY_PASS_FILE"
+          chmod 600 "$KS_PASS_FILE" "$KEY_PASS_FILE"
+
+          if ! keytool -list -keystore "$KEYSTORE_FILE" -storepass:file "$KS_PASS_FILE" -alias "$KEY_ALIAS" >/dev/null 2>&1; then
+            echo "::error::Keystore validation failed. Verify KEYSTORE_BASE64, STORE_PASSWORD, and that key alias '${KEY_ALIAS}' exists in the keystore."
+            keytool -list -keystore "$KEYSTORE_FILE" -storepass:file "$KS_PASS_FILE" || true
+            exit 1
+          fi
+
+          echo "KEYSTORE_PATH=${KEYSTORE_FILE}" >> "$GITHUB_ENV"
+          echo "STORE_PASSWORD=${RAW_STORE_PASSWORD}" >> "$GITHUB_ENV"
+          echo "KEY_PASSWORD=${EFFECTIVE_KEY_PASSWORD}" >> "$GITHUB_ENV"
+          echo "KS_PASS_FILE=${KS_PASS_FILE}" >> "$GITHUB_ENV"
+          echo "KEY_PASS_FILE=${KEY_PASS_FILE}" >> "$GITHUB_ENV"
+          echo "has_signing=true" >> "$GITHUB_OUTPUT"
+          echo "Keystore validated successfully for alias '${KEY_ALIAS}'."
+
+      - name: Run unit & Robolectric tests
+        shell: bash
+        run: $GRADLE_CMD :app:testDebugUnitTest $GRADLE_CI_FLAGS
+
+      - name: Build Debug APK (unsigned/PR fallback)
+        if: steps.signing.outputs.has_signing != 'true'
+        shell: bash
+        run: |
+          if [ ! -f "debug.keystore" ]; then
+            if [ -f "debug.keystore.base64" ]; then
+              tr -d '\r\n ' < debug.keystore.base64 | base64 --decode > debug.keystore
+            else
+              keytool -genkeypair -v \
+                -keystore debug.keystore \
+                -storepass android \
+                -alias androiddebugkey \
+                -keypass android \
+                -keyalg RSA \
+                -keysize 2048 \
+                -validity 10000 \
+                -dname "CN=Android Debug,O=Android,C=US"
+            fi
+          fi
+          $GRADLE_CMD :app:assembleDebug $GRADLE_CI_FLAGS
+          mkdir -p dist
+          DEBUG_APK=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+          cp "$DEBUG_APK" "dist/ArcFiles-v${{ steps.meta.outputs.version_name }}-debug.apk"
+
+      - name: Build Publish APK & Play Store AAB
+        if: steps.signing.outputs.has_signing == 'true'
+        shell: bash
+        run: |
+          $GRADLE_CMD :app:assembleRelease :app:bundleRelease $GRADLE_CI_FLAGS
+
+          RELEASE_APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          RELEASE_AAB=$(find app/build/outputs/bundle/release -name "*.aab" | head -n 1)
+
+          if [ -z "$RELEASE_APK" ] || [ ! -f "$RELEASE_APK" ]; then
+            echo "::error::Release APK not found after assembleRelease."
+            exit 1
+          fi
+          if [ -z "$RELEASE_AAB" ] || [ ! -f "$RELEASE_AAB" ]; then
+            echo "::error::Play Store AAB not found after bundleRelease."
+            exit 1
+          fi
+
+          echo "RELEASE_APK=${RELEASE_APK}" >> "$GITHUB_ENV"
+          echo "RELEASE_AAB=${RELEASE_AAB}" >> "$GITHUB_ENV"
+
+      - name: Cache bundletool
+        if: steps.signing.outputs.has_signing == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/bundletool
+          key: bundletool-${{ env.BUNDLETOOL_VERSION }}
+
+      - name: Build Universal APK from Play Store AAB via bundletool
+        if: steps.signing.outputs.has_signing == 'true'
+        shell: bash
+        run: |
+          BUNDLETOOL_DIR="${RUNNER_TEMP}/bundletool"
+          BUNDLETOOL_JAR="${BUNDLETOOL_DIR}/bundletool-all-${BUNDLETOOL_VERSION}.jar"
+          mkdir -p "$BUNDLETOOL_DIR"
+
+          if [ ! -f "$BUNDLETOOL_JAR" ]; then
+            curl -fsSL --retry 3 \
+              "https://github.com/google/bundletool/releases/download/${BUNDLETOOL_VERSION}/bundletool-all-${BUNDLETOOL_VERSION}.jar" \
+              -o "$BUNDLETOOL_JAR"
+          fi
+
+          # Ensure password files exist and use "file:" prefix required by bundletool 1.18.3+
+          if [ ! -f "$KS_PASS_FILE" ] || [ ! -f "$KEY_PASS_FILE" ]; then
+            echo "::error::Keystore password files missing."
+            exit 1
+          fi
+
+          UNIVERSAL_APKS="${RUNNER_TEMP}/universal.apks"
+          UNIVERSAL_APK="${RUNNER_TEMP}/universal.apk"
+
+          java -jar "$BUNDLETOOL_JAR" build-apks \
+            --bundle="$RELEASE_AAB" \
+            --output="$UNIVERSAL_APKS" \
+            --mode=universal \
+            --ks="$KEYSTORE_PATH" \
+            --ks-pass="file:${KS_PASS_FILE}" \
+            --ks-key-alias="$KEY_ALIAS" \
+            --key-pass="file:${KEY_PASS_FILE}" \
+            --overwrite
+
+          unzip -p "$UNIVERSAL_APKS" universal.apk > "$UNIVERSAL_APK"
+
+          # Verify APK signatures with Android build-tools apksigner
+          APKSIGNER=$(find "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools" -name "apksigner" 2>/dev/null | sort -V | tail -n 1 || true)
+          if [ -n "$APKSIGNER" ]; then
+            echo "Verifying signatures with $APKSIGNER..."
+            "$APKSIGNER" verify --print-certs "$RELEASE_APK"
+            "$APKSIGNER" verify --print-certs "$UNIVERSAL_APK"
+          fi
+
+          mkdir -p dist
+          VERSION_NAME="${{ steps.meta.outputs.version_name }}"
+          cp "$RELEASE_APK" "dist/ArcFiles-v${VERSION_NAME}-release.apk"
+          cp "$UNIVERSAL_APK" "dist/ArcFiles-v${VERSION_NAME}-universal.apk"
+          cp "$RELEASE_AAB" "dist/ArcFiles-v${VERSION_NAME}-playstore.aab"
+
+          (cd dist && sha256sum *.apk *.aab > SHA256SUMS.txt)
+          ls -lh dist/
+
+      - name: Clean up temporary signing files
+        if: always()
+        shell: bash
+        run: |
+          rm -f "${RUNNER_TEMP}/release-upload.jks" "${RUNNER_TEMP}/ks.pass" "${RUNNER_TEMP}/key.pass" "${RUNNER_TEMP}/universal.apks" "${RUNNER_TEMP}/universal.apk"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: arcfiles-${{ steps.meta.outputs.release_tag }}-artifacts
+          path: dist/*
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: |
+          steps.signing.outputs.has_signing == 'true' &&
+          (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish_release))
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.release_tag }}
+          name: ArcFiles ${{ steps.meta.outputs.release_tag }}
+          prerelease: ${{ steps.meta.outputs.is_prerelease == 'true' }}
+          generate_release_notes: true
+          files: |
+            dist/*.apk
+            dist/*.aab
+            dist/SHA256SUMS.txt
+          body: |
+            ### Build Outputs (`v${{ steps.meta.outputs.version_name }}` · versionCode `${{ steps.meta.outputs.version_code }}`)
+            - **Direct Install / Publish APK**: `ArcFiles-v${{ steps.meta.outputs.version_name }}-release.apk`
+            - **Universal APK (via `bundletool` from AAB)**: `ArcFiles-v${{ steps.meta.outputs.version_name }}-universal.apk`
+            - **Google Play Store Bundle**: `ArcFiles-v${{ steps.meta.outputs.version_name }}-playstore.aab`
+            - **Checksums**: `SHA256SUMS.txt`
+
+      - name: Write job summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## ArcFiles Build Summary"
+            echo "- **Version**: \`${{ steps.meta.outputs.version_name }}\` (code \`${{ steps.meta.outputs.version_code }}\`)"
+            echo "- **Release Tag**: \`${{ steps.meta.outputs.release_tag }}\`"
+            echo "- **Release Signing**: \`${{ steps.signing.outputs.has_signing }}\`"
+            if [ "${{ steps.signing.outputs.has_signing }}" != "true" ]; then
+              echo ""
+              echo "> **Note**: Add \`KEYSTORE_BASE64\`, \`STORE_PASSWORD\`, and \`KEY_PASSWORD\` (key alias \`upload\`) in **Settings → Secrets and variables → Actions** to build signed Release APKs, Play Store AABs, and auto-publish GitHub Releases."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
