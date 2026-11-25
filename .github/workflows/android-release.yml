@@ -3,14 +3,12 @@ name: Android Release & Play Store Build
 on:
   push:
     branches:
-      - main
-      - master
+      - "**"
     tags:
       - "v*"
   pull_request:
     branches:
-      - main
-      - master
+      - "**"
   workflow_dispatch:
     inputs:
       release_tag:
@@ -307,7 +305,10 @@ jobs:
       - name: Publish GitHub Release
         if: |
           steps.signing.outputs.has_signing == 'true' &&
-          (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish_release))
+          (
+            (github.event_name == 'push' && (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/'))) ||
+            (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)
+          )
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.meta.outputs.release_tag }}
@@ -328,7 +329,10 @@ jobs:
       - name: Publish GitHub Pre-Release (Debug APK fallback)
         if: |
           steps.signing.outputs.has_signing != 'true' &&
-          (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish_release))
+          (
+            (github.event_name == 'push' && (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/'))) ||
+            (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)
+          )
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.meta.outputs.release_tag }}
