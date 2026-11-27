@@ -962,7 +962,8 @@ class ArcFilesRobolectricTest {
     @Test
     fun beta_version_synced_and_default_light_theme_toggles_smoothly() {
         assertTrue(BuildConfig.VERSION_NAME.contains("beta"))
-        assertEquals(16, BuildConfig.VERSION_CODE)
+        assertEquals(17, BuildConfig.VERSION_CODE)
+        assertEquals("com.mirazkbr.arcfile", BuildConfig.APPLICATION_ID)
         assertEquals(com.example.ui.theme.ThemePreference.LIGHT, com.example.data.ExplorerPreferences().themePreference)
 
         composeTestRule.setContent {

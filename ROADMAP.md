@@ -25,10 +25,10 @@ Step-by-step execution plan to progress cleanly from `v0.1-alpha` to `v1.0`.
 - [x] (`0.2.9-alpha`) Replaced Settings header shortcut with **Tab Manager** open-tab dropdown switcher and redesigned **Breadcrumbs** as a compact flat borderless trail.
 - [x] (`0.3.0-alpha`) Added explicit **Sort Order (`Asc`/`Desc`)**, **Group By (`Type`/`Date`)** headers across List & Square Grid views, real-time **Room** per-folder layout persistence (`ArcDatabase`), and automatic DB cleanup on folder rename, delete, move, or trash.
 
-## Phase 2 — Rich Media & Productivity (`0.4.3-beta`) [Current]
+## Phase 2 — Rich Media & Productivity (`0.4.4-beta`) [Current]
 - [x] Video thumbnail extraction (`MediaMetadataRetriever`) in `ArcThumbnail` & `FileGridCard`.
 - [x] iOS-inspired `1.27 : 1` folder silhouette proportions & minimal Batch Rename modal + Inline Rename.
-- [x] Promoted to **Beta (`0.4.3-beta`, `versionCode = 16`)** with R8 minification, resource shrinking, dynamic UI version sync, versioned build filenames, unique-tag GitHub Releases, Light default theme, and smooth animated Light/Dark/Auto theme transitions.
+- [x] Promoted to **Beta (`0.4.4-beta`, `versionCode = 17`, `com.mirazkbr.arcfile`)** with R8 minification, resource shrinking, dynamic UI version sync, versioned build filenames, unique-tag GitHub Releases, Light default theme, and smooth animated Light/Dark/Auto theme transitions.
 - [x] Unified Folder-Style Empty UI (`ArcUnifiedEmptyState`) across all screens (no empty-data action buttons or empty filter pills), Active Recycle Bin (default on), iOS Files Manager file/folder icons, iOS-style archive preview modal with WinRAR-style extract options, Documents quick filter pills, and Media3 Video Player plugin.
 - [x] File Tagging system (`ArcDatabase`), floating batch multi-select bottom bar, and clean `EmptyBrowserState` preserved across readable empty folders.
 - [x] Built-in Android `PackageInstaller` APK installation flow, SAF external view staging, broad MIME fallback matching, and explicit "No App Installed" feedback.

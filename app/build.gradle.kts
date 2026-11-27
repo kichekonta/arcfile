@@ -13,11 +13,11 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.aistudio.applet.opqlxp"
+    applicationId = "com.mirazkbr.arcfile"
     minSdk = 24
     targetSdk = 36
-    versionCode = 16
-    versionName = "0.4.3-beta"
+    versionCode = 17
+    versionName = "0.4.4-beta"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

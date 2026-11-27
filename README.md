@@ -1,10 +1,10 @@
-# Arc Files (`v0.4.3-beta`)
+# Arc Files (`v0.4.4-beta`)
 
 A fast, lightweight Android file explorer built with **Kotlin** and **Jetpack Compose (Material 3)** following an **iOS Files / macOS Finder System Blue (`#007AFF`)** design, featuring a translucent **Top Tab Island**, **View Options & Tab Manager**, flat borderless **Breadcrumbs**, explicit **Sort Order** (`Asc` / `Desc`), **Group By** (`None` / `Type` / `Date`), **real-time Room per-folder layout persistence** (with automatic cleanup on folder rename/delete), **adaptive multi-DPI scaling** (`ldpi`–`xxxhdpi` & tablets), uniform **Square 2–5 column Grid**, **Original Ratio Image & Video Viewer**, **built-in APK Package Installer**, **Space Analyzer**, **Active Recycle Bin**, **Bookmarks**, **File Tags**, and a dedicated **Settings** page.
 
 ## Current Release Status
-- **Stage:** Beta (`0.4.3-beta`, `versionCode = 16`)
-- **Application ID:** `com.aistudio.applet.opqlxp`
+- **Stage:** Beta (`0.4.4-beta`, `versionCode = 17`)
+- **Application ID:** `com.mirazkbr.arcfile`
 - **Min SDK:** 24 · **Target/Compile SDK:** 36
 
 ## Key Features
