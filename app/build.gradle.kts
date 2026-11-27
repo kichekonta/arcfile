@@ -16,8 +16,8 @@ android {
     applicationId = "com.aistudio.applet.opqlxp"
     minSdk = 24
     targetSdk = 36
-    versionCode = 15
-    versionName = "0.4.2-beta"
+    versionCode = 16
+    versionName = "0.4.3-beta"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -94,6 +94,10 @@ android {
       )
     }
   }
+}
+
+base {
+  archivesName.set("ArcFiles-v${android.defaultConfig.versionName}-b${android.defaultConfig.versionCode}")
 }
 
 // Configure the Secrets Gradle Plugin to use .env and .env.example files

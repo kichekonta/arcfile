@@ -24,9 +24,9 @@ Arc Files uses a clean **iOS Files / macOS Finder System Blue** design system wi
 | `onSurfaceVariant` | `#8E8E93` | `#98989D` | Metadata, subtitles |
 | `primary` | `#007AFF` | `#0A84FF` | System Blue accents, active pills, icons |
 
-## 3. Canonical Empty Folder View (`EmptyBrowserState`)
+## 3. Canonical Empty State View (`ArcUnifiedEmptyState`)
 
-Empty folders in `BrowserScreen.kt` preserve the clean centered illustration with **no clutter or extra create buttons**:
+Empty folders, libraries, categories, search/tags, and tools share the clean centered illustration in `ArcUnifiedEmptyState` (`ArcUiPrimitives.kt`) with **zero action buttons**:
 - `124.dp` atmospheric radial glow + subtle dashed circular orbit (`primary.copy(alpha = 0.22f)`)
 - Tilted `66.dp` light-blue backing card (`rotationZ = -9f`) behind a crisp floating `72.dp` rounded-square badge (`surfaceContainerLow -> surfaceContainerHigh` gradient, `2.dp` shadow) containing `Icons.Outlined.FolderOpen` (`34.dp`, `primary`)
 - Title: `"This folder is empty"` (`titleMedium`, `SemiBold`)

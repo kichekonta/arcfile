@@ -1,6 +1,6 @@
 {
   "name": "ArcFiles",
-  "description": "Modern minimalist Android file explorer with top tab island, drives overview, and binary-color category icons (Alpha).",
+  "description": "Modern minimalist Android file explorer with top tab island, drives overview, iOS Files icons, and active recycle bin (Beta).",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

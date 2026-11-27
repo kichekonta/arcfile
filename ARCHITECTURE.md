@@ -25,11 +25,11 @@ app/src/main/java/com/example/
     ├── components/
     │   ├── TopTabIsland.kt              # Translucent iOS Nav Bar, Staggered Menu, Tab Island, Search & View Options menu
     │   ├── ArcSidebarDrawer.kt          # Expandable sidebar drawer (Favorites, Local, Library, Tags, Tools, Theme)
-    │   ├── common/ArcUiPrimitives.kt    # Reusable ArcCard, ArcBadge, ArcActionPill, ArcThumbnail, ArcEmptyStateCard
+    │   ├── common/ArcUiPrimitives.kt    # Reusable ArcCard, ArcBadge, ArcActionPill, ArcThumbnail, ArcUnifiedEmptyState, ArcEmptyStateCard
     │   └── dialogs/                     # ArchiveDialogs, BatchRenameDialog, DocumentViewerDialog, FileInspectorDialogs, MediaLightboxDialog, NewTabSheet
     └── screens/
         ├── home/                        # HomeScreen.kt + HomeComponents.kt
-        ├── browser/                     # BrowserScreen.kt (with EmptyBrowserState) + BrowserHeaders.kt + BrowserItemViews.kt + BrowserDragDrop.kt
+        ├── browser/                     # BrowserScreen.kt + BrowserHeaders.kt + BrowserItemViews.kt + BrowserDragDrop.kt
         ├── settings/                    # SettingsScreen.kt + SettingsComponents.kt
         └── tools/                       # ToolsScreens.kt (SpaceAnalyzerScreen, RecycleBinScreen, BookmarksScreen)
 ```
@@ -37,9 +37,9 @@ app/src/main/java/com/example/
 ## 2. Registry-Based UI Rules (Mandatory for Contributors)
 
 1. **File Size Cap**: Keep every UI file under **250 lines** (strictly < 500 lines). Split headers, item rows, and dialogs into focused sub-files.
-2. **Reuse `ArcUiPrimitives` & Canonical `EmptyBrowserState`**:
+2. **Reuse `ArcUiPrimitives` & Canonical `ArcUnifiedEmptyState`**:
    - Never write raw duplicated `Surface` cards, badges, pills, or thumbnails when `ArcCard`, `ArcBadge`, `ArcSectionHeader`, `ArcActionPill`, or `ArcThumbnail` already exist.
-   - **Empty Directory View (`EmptyBrowserState` in `BrowserScreen.kt`)**: Empty folders (`DirectoryLoadState.Loaded(emptyList())`) MUST always keep the centered clean iOS-style illustration — dashed orbit ring + subtle tilted backing squircle + floating rounded-square folder badge + `"This folder is empty"` + `"Files and folders added here will appear automatically."` with **zero action buttons**. Never replace empty directories with `ArcEmptyStateCard` (which is reserved only for blocked/restricted `RestrictedRequiresSaf` or `Error` states and tools empty views).
+   - **Empty Data Views (`ArcUnifiedEmptyState` in `ArcUiPrimitives.kt`)**: Empty folders, media/archive libraries, gallery albums, bookmarks, recycle bin, and space analyzer views MUST always reuse `ArcUnifiedEmptyState` — soft radial aura + dashed orbit ring + tilted backing squircle + floating tinted squircle badge + title + subtitle with **zero action buttons**, and hide secondary format/sub-filter pills when there is no data. Reserve `ArcEmptyStateCard` strictly for error or permission-restricted (`RestrictedRequiresSaf`) states.
 3. **Zero-Allocation List/Grid Modifiers**: Use `ModifierNodeElement` / `DelegatingNode` (never `Modifier.composed`) inside `LazyColumn` and `LazyVerticalGrid` items for zero-lag native scroll performance.
 4. **Adding a New Category or Drive Icon**:
    - Register the icon spec (`startLight`/`endLight`, `startDark`/`endDark`, `ModernGlyphRenderer`) in `BinaryIconRegistry.kt`.
