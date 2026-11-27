@@ -87,6 +87,7 @@ import com.example.ui.components.common.ArcIosSecondaryButton
 import com.example.ui.components.common.ArcIosTintedButton
 import com.example.ui.components.common.ArcSectionHeader
 import com.example.ui.components.common.ArcThumbnail
+import com.example.ui.components.common.ArcUnifiedEmptyState
 import com.example.ui.registry.BinaryCategoryIcon
 import com.example.ui.registry.BinaryFileItemIcon
 import com.example.ui.theme.ArcTheme
@@ -188,10 +189,11 @@ fun SpaceAnalyzerScreen(
 
             if (largestFiles.isEmpty()) {
                 item {
-                    ArcEmptyStateCard(
+                    ArcUnifiedEmptyState(
                         icon = Icons.Filled.PieChart,
                         title = "No indexed files yet",
-                        subtitle = "Grant All Files Access or mount a folder to inspect largest files."
+                        subtitle = "Indexed files across internal storage and mounted folders will appear here.",
+                        fillMaxSize = false
                     )
                 }
             } else {
@@ -542,18 +544,20 @@ fun RecycleBinScreen(
 
                 if (entries.isEmpty()) {
                     item {
-                        ArcEmptyStateCard(
+                        ArcUnifiedEmptyState(
                             icon = Icons.Filled.DeleteOutline,
                             title = "Recycle Bin is empty",
-                            subtitle = "Any deleted file or folder moves here first, so you can restore it anytime or delete it permanently."
+                            subtitle = "Any deleted file or folder moves here first, so you can restore it anytime or delete it permanently.",
+                            fillMaxSize = false
                         )
                     }
                 } else if (filteredEntries.isEmpty()) {
                     item {
-                        ArcEmptyStateCard(
+                        ArcUnifiedEmptyState(
                             icon = Icons.Filled.Search,
                             title = "No matching deleted items",
-                            subtitle = "Try clearing the search query or switching filters."
+                            subtitle = "Try clearing the search query or switching filters.",
+                            fillMaxSize = false
                         )
                     }
                 } else {
@@ -932,10 +936,11 @@ fun BookmarksScreen(
 
             if (bookmarks.isEmpty()) {
                 item {
-                    ArcEmptyStateCard(
+                    ArcUnifiedEmptyState(
                         icon = Icons.Filled.Bookmark,
                         title = "No bookmarks yet",
-                        subtitle = "Open any folder or file menu (⋮) and choose Bookmark to pin it here."
+                        subtitle = "Open any folder or file menu (⋮) and choose Bookmark to pin it here.",
+                        fillMaxSize = false
                     )
                 }
             } else {

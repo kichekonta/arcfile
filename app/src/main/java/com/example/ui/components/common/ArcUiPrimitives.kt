@@ -1,5 +1,8 @@
 package com.example.ui.components.common
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,8 +16,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -23,15 +28,27 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
@@ -328,6 +345,149 @@ fun ArcEmptyStateCard(
                 Spacer(modifier = Modifier.height(2.dp))
                 actions()
             }
+        }
+    }
+}
+
+@Composable
+fun ArcUnifiedEmptyState(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    animationKey: Any? = title,
+    fillMaxSize: Boolean = true
+) {
+    var revealed by remember(animationKey) { mutableStateOf(false) }
+    LaunchedEffect(animationKey) { revealed = true }
+    val scale by animateFloatAsState(
+        targetValue = if (revealed) 1f else 0.94f,
+        animationSpec = spring(dampingRatio = 0.78f, stiffness = Spring.StiffnessMediumLow),
+        label = "unified_empty_scale"
+    )
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (revealed) 1f else 0.85f,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "unified_empty_alpha"
+    )
+
+    val surfaceHigh = MaterialTheme.colorScheme.surfaceContainerHigh
+    val surfaceLow = MaterialTheme.colorScheme.surfaceContainerLow
+
+    val containerModifier = if (fillMaxSize) {
+        modifier
+            .fillMaxSize()
+            .padding(horizontal = 32.dp, vertical = 24.dp)
+    } else {
+        modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 28.dp)
+    }
+
+    Box(
+        modifier = containerModifier,
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier
+                .widthIn(max = 320.dp)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .alpha(contentAlpha),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier.size(124.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .drawWithCache {
+                            val radialBrush = Brush.radialGradient(
+                                colors = listOf(
+                                    accentColor.copy(alpha = 0.14f),
+                                    accentColor.copy(alpha = 0.04f),
+                                    Color.Transparent
+                                )
+                            )
+                            val dashStroke = Stroke(
+                                width = 1.4.dp.toPx(),
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                            )
+                            val ringColor = accentColor.copy(alpha = 0.22f)
+                            val ringRadius = size.minDimension * 0.42f
+                            onDrawBehind {
+                                drawCircle(brush = radialBrush)
+                                drawCircle(
+                                    color = ringColor,
+                                    radius = ringRadius,
+                                    style = dashStroke
+                                )
+                            }
+                        }
+                )
+
+                Surface(
+                    modifier = Modifier
+                        .size(66.dp)
+                        .offset(x = (-10).dp, y = (-6).dp)
+                        .graphicsLayer { rotationZ = -9f },
+                    shape = RoundedCornerShape(20.dp),
+                    color = accentColor.copy(alpha = 0.09f),
+                    border = BorderStroke(0.8.dp, accentColor.copy(alpha = 0.14f))
+                ) {}
+
+                Surface(
+                    modifier = Modifier.size(72.dp),
+                    shape = RoundedCornerShape(22.dp),
+                    color = surfaceLow,
+                    shadowElevation = 2.dp,
+                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(surfaceLow, surfaceHigh)
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = accentColor,
+                            modifier = Modifier.size(34.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = (-0.2).sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                textAlign = TextAlign.Center
+            )
         }
     }
 }

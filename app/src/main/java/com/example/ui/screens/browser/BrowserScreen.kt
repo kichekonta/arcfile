@@ -94,6 +94,7 @@ import com.example.data.ViewMode
 import com.example.data.layoutStorageKey
 import com.example.data.normalizeTagPath
 import com.example.ui.components.common.ArcEmptyStateCard
+import com.example.ui.components.common.ArcUnifiedEmptyState
 import com.example.ui.components.common.TagHeaderBar
 import com.example.ui.registry.FileActionId
 import com.example.ui.registry.LocalArcTextMeasurer
@@ -295,7 +296,7 @@ fun BrowserScreen(
                         isScanning = isArchivesCategory && isScanningCompressed,
                         onRescanClick = if (isArchivesCategory) onRescanCompressed else null
                     )
-                    if (isArchivesCategory && (allCompressedItems.isNotEmpty() || !isScanningCompressed)) {
+                    if (isArchivesCategory && allCompressedItems.isNotEmpty()) {
                         CompressedFormatFilterRow(
                             allArchives = allCompressedItems,
                             selectedFilterId = compressedFormatFilter,
@@ -663,29 +664,10 @@ private fun EmptyBrowserState(
     onResetCompressedFilter: () -> Unit = {},
     onRescanCompressed: () -> Unit = {}
 ) {
-    val d = ArcTheme.dimens
     val isSearch = destination is TabDestination.Search
     val isCategory = destination is TabDestination.Category
     val isArchivesCategory = (destination as? TabDestination.Category)?.category == ExplorerCategory.ARCHIVES
     val isTag = destination is TabDestination.Tag
-
-    val emptyKey = destination.layoutStorageKey() ?: destination::class.simpleName
-    var revealed by remember(emptyKey) { mutableStateOf(false) }
-    LaunchedEffect(emptyKey) { revealed = true }
-    val scale by animateFloatAsState(
-        targetValue = if (revealed) 1f else 0.94f,
-        animationSpec = spring(dampingRatio = 0.78f, stiffness = Spring.StiffnessMediumLow),
-        label = "empty_state_scale"
-    )
-    val contentAlpha by animateFloatAsState(
-        targetValue = if (revealed) 1f else 0.85f,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "empty_state_alpha"
-    )
-
-    val primary = MaterialTheme.colorScheme.primary
-    val surfaceHigh = MaterialTheme.colorScheme.surfaceContainerHigh
-    val surfaceLow = MaterialTheme.colorScheme.surfaceContainerLow
 
     val emblemIcon = when {
         isSearch -> Icons.Filled.Search
@@ -711,161 +693,13 @@ private fun EmptyBrowserState(
         else -> stringResource(R.string.empty_folder_hint)
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 32.dp, vertical = 24.dp)
-            .testTag("empty_browser_state"),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            modifier = Modifier
-                .widthIn(max = 320.dp)
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                }
-                .alpha(contentAlpha),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Layered modern visual centerpiece with atmospheric radial glow & dashed orbit ring
-            Box(
-                modifier = Modifier.size(124.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Spacer(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .drawWithCache {
-                            val radialBrush = Brush.radialGradient(
-                                colors = listOf(
-                                    primary.copy(alpha = 0.14f),
-                                    primary.copy(alpha = 0.04f),
-                                    Color.Transparent
-                                )
-                            )
-                            val dashStroke = Stroke(
-                                width = 1.4.dp.toPx(),
-                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
-                            )
-                            val ringColor = primary.copy(alpha = 0.22f)
-                            val ringRadius = size.minDimension * 0.42f
-                            onDrawBehind {
-                                drawCircle(brush = radialBrush)
-                                drawCircle(
-                                    color = ringColor,
-                                    radius = ringRadius,
-                                    style = dashStroke
-                                )
-                            }
-                        }
-                )
-
-                // Subtle tilted depth card layer behind emblem
-                Surface(
-                    modifier = Modifier
-                        .size(66.dp)
-                        .offset(x = (-10).dp, y = (-6).dp)
-                        .graphicsLayer { rotationZ = -9f },
-                    shape = RoundedCornerShape(20.dp),
-                    color = primary.copy(alpha = 0.09f),
-                    border = BorderStroke(0.8.dp, primary.copy(alpha = 0.14f))
-                ) {}
-
-                // Crisp foreground floating squircle badge
-                Surface(
-                    modifier = Modifier.size(72.dp),
-                    shape = RoundedCornerShape(22.dp),
-                    color = surfaceLow,
-                    shadowElevation = 2.dp,
-                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(surfaceLow, surfaceHigh)
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = emblemIcon,
-                            contentDescription = null,
-                            tint = primary,
-                            modifier = Modifier.size(34.dp)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = (-0.2).sp
-                ),
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
-                textAlign = TextAlign.Center
-            )
-
-            if (isArchivesCategory && hasUnfilteredArchives) {
-                Spacer(modifier = Modifier.height(18.dp))
-                Button(
-                    onClick = onResetCompressedFilter,
-                    shape = RoundedCornerShape(d.pillRadius),
-                    modifier = Modifier.testTag("compressed_show_all_button")
-                ) {
-                    Text("Show All")
-                }
-            } else if (isArchivesCategory) {
-                Spacer(modifier = Modifier.height(18.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedButton(
-                        onClick = onMountFolderClick,
-                        shape = RoundedCornerShape(d.pillRadius)
-                    ) {
-                        Text(stringResource(R.string.mount_folder))
-                    }
-                    Button(
-                        onClick = onRescanCompressed,
-                        shape = RoundedCornerShape(d.pillRadius),
-                        modifier = Modifier.testTag("empty_compressed_rescan_button")
-                    ) {
-                        Text("Rescan")
-                    }
-                }
-            } else if (isCategory) {
-                Spacer(modifier = Modifier.height(18.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedButton(
-                        onClick = onMountFolderClick,
-                        shape = RoundedCornerShape(d.pillRadius)
-                    ) {
-                        Text(stringResource(R.string.mount_folder))
-                    }
-                    Button(
-                        onClick = onImportMediaClick,
-                        shape = RoundedCornerShape(d.pillRadius)
-                    ) {
-                        Text("Import")
-                    }
-                }
-            }
-        }
-    }
+    ArcUnifiedEmptyState(
+        title = title,
+        subtitle = subtitle,
+        icon = emblemIcon,
+        animationKey = destination.layoutStorageKey() ?: destination::class.simpleName,
+        modifier = Modifier.testTag("empty_browser_state")
+    )
 }
 
 @Composable

@@ -119,6 +119,7 @@ import com.example.data.GalleryPanel
 import com.example.data.LibrarySection
 import com.example.data.PhotoAlbum
 import com.example.data.SortField
+import com.example.ui.components.common.ArcUnifiedEmptyState
 import com.example.ui.components.common.TagDotsCluster
 import com.example.ui.registry.FileActionId
 import com.example.ui.screens.browser.BrowserDragDropState
@@ -1975,62 +1976,11 @@ private fun GalleryEmptyPlaceholder(
     secondaryLabel: String?,
     onSecondaryClick: () -> Unit
 ) {
-    val d = ArcTheme.dimens
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp)
-            .testTag("gallery_empty_state"),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            modifier = Modifier.widthIn(max = 310.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(68.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (secondaryLabel != null) {
-                    OutlinedButton(
-                        onClick = onSecondaryClick,
-                        shape = RoundedCornerShape(d.pillRadius)
-                    ) {
-                        Text(secondaryLabel)
-                    }
-                }
-                Button(
-                    onClick = onPrimaryClick,
-                    shape = RoundedCornerShape(d.pillRadius)
-                ) {
-                    Text(primaryLabel)
-                }
-            }
-        }
-    }
+    ArcUnifiedEmptyState(
+        title = title,
+        subtitle = subtitle,
+        icon = icon,
+        animationKey = title,
+        modifier = Modifier.testTag("gallery_empty_state")
+    )
 }

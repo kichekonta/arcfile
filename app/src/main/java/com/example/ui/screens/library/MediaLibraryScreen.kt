@@ -75,6 +75,7 @@ import com.example.data.FormatUtils
 import com.example.data.LibrarySection
 import com.example.data.ViewMode
 import com.example.data.normalizeTagPath
+import com.example.ui.components.common.ArcUnifiedEmptyState
 import com.example.ui.registry.FileActionId
 import com.example.ui.registry.LocalArcTextMeasurer
 import com.example.ui.screens.browser.FileGridCard
@@ -158,7 +159,7 @@ fun MediaLibraryScreen(
                 onOpenSearch = onOpenSearch
             )
 
-            if (filterOptions.isNotEmpty()) {
+            if (allSectionItems.isNotEmpty() && filterOptions.isNotEmpty()) {
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -485,66 +486,18 @@ private fun LibraryEmptyState(
     onImportClick: () -> Unit,
     onMountFolderClick: () -> Unit
 ) {
-    val d = ArcTheme.dimens
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp)
-            .testTag("library_empty_state"),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            modifier = Modifier.widthIn(max = 310.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(accent.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = sectionIcon(section),
-                    contentDescription = null,
-                    tint = accent,
-                    modifier = Modifier.size(30.dp)
-                )
-            }
-            Text(
-                text = if (isFiltered) "No matching ${section.label.lowercase()}" else "No ${section.label.lowercase()} found",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = if (isFiltered) {
-                    "Switch back to All to view every file in this library section."
-                } else {
-                    "Files matching ${section.label.lowercase()} across internal storage and mounted folders appear here automatically."
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            if (isFiltered) {
-                Button(onClick = onResetFilter, shape = RoundedCornerShape(d.pillRadius)) {
-                    Text("Show All")
-                }
-            } else {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedButton(onClick = onMountFolderClick, shape = RoundedCornerShape(d.pillRadius)) {
-                        Text("Mount Folder")
-                    }
-                    Button(onClick = onImportClick, shape = RoundedCornerShape(d.pillRadius)) {
-                        Text("Import")
-                    }
-                }
-            }
-        }
-    }
+    ArcUnifiedEmptyState(
+        title = if (isFiltered) "No matching ${section.label.lowercase()}" else "No ${section.label.lowercase()} found",
+        subtitle = if (isFiltered) {
+            "Switch back to All to view every file in this library section."
+        } else {
+            "Files matching ${section.label.lowercase()} across internal storage and mounted folders appear here automatically."
+        },
+        icon = sectionIcon(section),
+        accentColor = accent,
+        animationKey = "${section.name}_$isFiltered",
+        modifier = Modifier.testTag("library_empty_state")
+    )
 }
 
 private fun sectionIcon(section: LibrarySection): ImageVector = when (section) {

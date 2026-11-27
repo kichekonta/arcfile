@@ -6738,4 +6738,136 @@ class ArcFilesRobolectricTest {
         assertEquals(listOf("t1"), deletedForeverIds)
         assertTrue(trashEntriesState.value.isEmpty())
     }
+
+    @Test
+    fun unified_empty_state_hides_action_buttons_and_empty_filter_pills_across_screens() {
+        val screenMode = mutableStateOf(0)
+        composeTestRule.setContent {
+            com.example.ui.theme.ArcFilesTheme {
+                when (screenMode.value) {
+                    0 -> com.example.ui.screens.library.MediaLibraryScreen(
+                        section = com.example.data.LibrarySection.MUSIC,
+                        allSectionItems = emptyList(),
+                        filteredItems = emptyList(),
+                        activeSubFilterId = "ALL",
+                        selectedIds = emptySet(),
+                        renamingItemId = null,
+                        itemTagsByPath = emptyMap(),
+                        viewMode = ViewMode.LIST,
+                        gridColumns = 3,
+                        originalMediaRatio = false,
+                        monochromeBinaryIcons = false,
+                        showFileExtensions = true,
+                        compactListMode = false,
+                        isActivePage = true,
+                        onBack = {},
+                        onSelectSubFilter = {},
+                        onToggleViewMode = {},
+                        onOpenSearch = {},
+                        onFileClick = {},
+                        onToggleSelect = {},
+                        onSelectAll = {},
+                        onClearSelection = {},
+                        onFileAction = { _, _ -> },
+                        onConfirmInlineRename = { _, _ -> },
+                        onCancelInlineRename = {},
+                        onImportClick = {},
+                        onMountFolderClick = {}
+                    )
+                    1 -> com.example.ui.screens.browser.BrowserScreen(
+                        destination = TabDestination.Category(
+                            category = ExplorerCategory.ARCHIVES
+                        ),
+                        directoryState = DirectoryLoadState.Loaded(items = emptyList()),
+                        categoryItems = emptyList(),
+                        allCompressedItems = emptyList(),
+                        isScanningCompressed = false,
+                        searchResults = emptyList(),
+                        selectedIds = emptySet(),
+                        clipboard = null,
+                        viewMode = ViewMode.LIST,
+                        sortField = SortField.NAME,
+                        sortAscending = true,
+                        monochromeBinaryIcons = false,
+                        onBack = {},
+                        onBreadcrumbClick = {},
+                        onSearchQueryChange = {},
+                        onToggleViewMode = {},
+                        onSortOrderChange = { _, _ -> },
+                        onToggleSortOrder = {},
+                        onGroupByChange = {},
+                        onNewFolderClick = {},
+                        onNewNoteClick = {},
+                        onRequestAllFilesAccess = {},
+                        onMountFolderClick = {},
+                        onImportMediaClick = {},
+                        onImportDocsClick = {},
+                        onPasteClick = {},
+                        onClearClipboard = {},
+                        onFileClick = {},
+                        onToggleSelect = {},
+                        onSelectAll = {},
+                        onClearSelection = {},
+                        onFileAction = { _, _ -> }
+                    )
+                    else -> com.example.ui.screens.library.GalleryLibraryScreen(
+                        allImages = emptyList(),
+                        libraryState = com.example.ui.screens.library.LibraryUiState(),
+                        selectedIds = emptySet(),
+                        itemTagsByPath = emptyMap(),
+                        gridColumns = 3,
+                        originalMediaRatio = false,
+                        dragReorderEnabled = false,
+                        isActivePage = true,
+                        section = com.example.data.LibrarySection.IMAGES,
+                        onBack = {},
+                        onSelectPanel = {},
+                        onOpenAlbum = {},
+                        onCloseAlbum = {},
+                        onCreateAlbumClick = {},
+                        onRenameAlbumClick = {},
+                        onDeleteAlbumClick = {},
+                        onSetAlbumCover = { _, _ -> },
+                        onAddToAlbumClick = {},
+                        onPickImagesForAlbumClick = {},
+                        onRemoveImagesFromAlbum = { _, _ -> },
+                        onOpenDeviceAlbumFolder = {},
+                        onPhotoClick = { _, _ -> },
+                        onToggleSelect = {},
+                        onSelectAll = {},
+                        onClearSelection = {},
+                        onFileAction = { _, _ -> },
+                        onReorderImages = {},
+                        onImportMediaClick = {},
+                        onMountFolderClick = {}
+                    )
+                }
+            }
+        }
+
+        // 1. Music Library empty: unified folder-style empty UI, no filter pills, no Mount Folder / Import buttons
+        composeTestRule.onNodeWithTag("library_empty_state").assertIsDisplayed()
+        composeTestRule.onNodeWithText("No music found").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("library_filter_row_music").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Mount Folder").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Import").assertDoesNotExist()
+
+        // 2. Compressed category empty: unified folder-style empty UI, no empty filter row, no Mount Folder / Rescan buttons
+        screenMode.value = 1
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("empty_browser_state").assertIsDisplayed()
+        composeTestRule.onNodeWithText("No compressed files found").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("compressed_filter_row").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Mount Folder").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("empty_compressed_rescan_button").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("compressed_show_all_button").assertDoesNotExist()
+
+        // 3. Images Gallery empty: unified folder-style empty UI, no Import Media / Mount Folder buttons
+        screenMode.value = 2
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("gallery_empty_state").assertIsDisplayed()
+        composeTestRule.onNodeWithText("No photos found").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Import Media").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Mount Folder").assertDoesNotExist()
+    }
 }
